@@ -311,22 +311,23 @@ public final class CertHack {
     private static ASN1EncodableVector processKeymaster(ASN1Sequence teeEnforced) {
         ASN1EncodableVector vector = new ASN1EncodableVector();
 
-            for (Enumeration<?> e = teeEnforced.getObjects(); e.hasMoreElements();) {
-                ASN1Encodable element = (ASN1Encodable) e.nextElement();
+        for (Enumeration<?> e = teeEnforced.getObjects(); e.hasMoreElements();) {
+            ASN1Encodable element = (ASN1Encodable) e.nextElement();
 
-                if (element instanceof ASN1TaggedObject) {
-                    ASN1TaggedObject taggedObject = (ASN1TaggedObject) element;
-                    ASN1Encodable obj = taggedObject.getObjectParser(taggedObject.getTagNo(), true);
+            if (element instanceof ASN1TaggedObject) {
+                ASN1TaggedObject taggedObject = (ASN1TaggedObject) element;
+                ASN1Encodable obj = taggedObject.getObject(); // 尝试使用 getObject 方法
 
-                    if (obj instanceof ASN1ObjectIdentifier) {
-                        ASN1ObjectIdentifier oid = (ASN1ObjectIdentifier) obj;
+                if (obj instanceof ASN1ObjectIdentifier) {
+                    ASN1ObjectIdentifier oid = (ASN1ObjectIdentifier) obj;
 
-                        if (oid.getId().equals("1.2.840.113549.1.1.1")) { // 示例OID
-                            vector.add(taggedObject);
-                        }
+                    if (oid.getId().equals("1.2.840.113549.1.1.1")) { // 示例OID
+                        vector.add(taggedObject);
                     }
                 }
             }
+        }
+
         return vector;
     }
 
