@@ -316,7 +316,7 @@ public final class CertHack {
 
             if (element instanceof ASN1TaggedObject) {
                 ASN1TaggedObject taggedObject = (ASN1TaggedObject) element;
-                ASN1Encodable obj = taggedObject.getObject(); // 尝试使用 getObject 方法
+                ASN1Primitive obj = taggedObject.getBaseUniversal(true, -1); // 使用 getBaseUniversal 方法
 
                 if (obj instanceof ASN1ObjectIdentifier) {
                     ASN1ObjectIdentifier oid = (ASN1ObjectIdentifier) obj;
