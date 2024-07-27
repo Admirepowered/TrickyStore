@@ -93,6 +93,9 @@ public final class CertHack {
 
     private static final int ATTESTATION_PACKAGE_INFO_VERSION_INDEX = 1;
 
+    private static boolean isKeyMint() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S; // Android 12及以上使用KeyMint
+    }
     public static boolean canHack() {
         return !keyboxes.isEmpty();
     }
@@ -170,7 +173,13 @@ public final class CertHack {
             ASN1Sequence sequence = ASN1Sequence.getInstance(ext.getExtnValue().getOctets());
             ASN1Encodable[] encodables = sequence.toArray();
             ASN1Sequence teeEnforced = (ASN1Sequence) encodables[7];
-            ASN1EncodableVector vector = new ASN1EncodableVector();
+            ASN1EncodableVector vector;
+            if (isKeyMint()) {
+                vector = processKeyMint(teeEnforced);
+            } else {
+                vector = processKeymaster(teeEnforced);
+            }
+            //ASN1EncodableVector vector = new ASN1EncodableVector();
             ASN1Encodable rootOfTrust = null;
 
             for (ASN1Encodable asn1Encodable : teeEnforced) {
@@ -250,6 +259,58 @@ public final class CertHack {
             Logger.e("", t);
         }
         return caList;
+    }
+
+    private static ASN1EncodableVector processKeyMint(ASN1Sequence teeEnforced) {
+        ASN1EncodableVector vector = new ASN1EncodableVector();
+        ASN1Encodable rootOfTrust = null;
+
+        for (ASN1Encodable asn1Encodable : teeEnforced) {
+            ASN1TaggedObject taggedObject = (ASN1TaggedObject) asn1Encodable;
+            if (taggedObject.getTagNo() == 704) {
+                rootOfTrust = taggedObject.getBaseObject().toASN1Primitive();
+                continue;
+            }
+            vector.add(taggedObject);
+        }
+
+        // Generate root of trust data
+        byte[] verifiedBootKey = UtilKt.getBootKey();
+        byte[] verifiedBootHash = null;
+
+        try {
+            if (!(rootOfTrust instanceof ASN1Sequence r)) {
+                throw new CertificateParsingException("Expected sequence for root of trust, found "
+                        + rootOfTrust.getClass().getName());
+            }
+            verifiedBootHash = getByteArrayFromAsn1(r.getObjectAt(3));
+        } catch (Throwable t) {
+            Logger.e("failed to get verified boot key or hash from original, use randomly generated instead", t);
+        }
+
+        if (verifiedBootHash == null) {
+            verifiedBootHash = UtilKt.getBootHash();
+        }
+
+        ASN1Encodable[] rootOfTrustEnc = {
+                new DEROctetString(verifiedBootKey),
+                ASN1Boolean.TRUE,
+                new ASN1Enumerated(0),
+                new DEROctetString(verifiedBootHash)
+        };
+
+        ASN1Sequence hackedRootOfTrust = new DERSequence(rootOfTrustEnc);
+        ASN1TaggedObject rootOfTrustTagObj = new DERTaggedObject(704, hackedRootOfTrust);
+        vector.add(rootOfTrustTagObj);
+
+        return vector;
+    }
+
+    private static ASN1EncodableVector processKeymaster(ASN1Sequence teeEnforced) {
+        // Implement Keymaster-specific logic
+        ASN1EncodableVector vector = new ASN1EncodableVector();
+        // Keymaster-specific processing logic here
+        return vector;
     }
 
     public static Pair<KeyPair, List<Certificate>> generateKeyPair(int uid, KeyDescriptor descriptor, KeyGenParameters params) {
