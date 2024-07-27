@@ -262,7 +262,7 @@ public final class CertHack {
         }
         return caList;
     }
-
+    @SuppressWarnings("deprecation")
     private static ASN1EncodableVector processKeyMint(ASN1Sequence teeEnforced) {
         ASN1EncodableVector vector = new ASN1EncodableVector();
         ASN1Encodable rootOfTrust = null;
