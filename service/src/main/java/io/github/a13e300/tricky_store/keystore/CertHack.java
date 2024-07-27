@@ -308,9 +308,25 @@ public final class CertHack {
     }
 
     private static ASN1EncodableVector processKeymaster(ASN1Sequence teeEnforced) {
-        // Implement Keymaster-specific logic
         ASN1EncodableVector vector = new ASN1EncodableVector();
-        // Keymaster-specific processing logic here
+        
+        // 遍历 teeEnforced 序列中的每个元素
+        for (Enumeration<?> e = teeEnforced.getObjects(); e.hasMoreElements();) {
+            ASN1Encodable element = (ASN1Encodable) e.nextElement();
+            
+            // 假设我们正在寻找特定的 OID 或标签
+            if (element instanceof ASN1TaggedObject) {
+                ASN1TaggedObject taggedObject = (ASN1TaggedObject) element;
+                ASN1ObjectIdentifier oid = (ASN1ObjectIdentifier) taggedObject.getObject();
+                
+                // 这里可以根据您的需求添加逻辑，处理特定的 OID 或标签
+                if (oid.getId().equals("1.2.840.113549.1.1.1")) { // 示例OID
+                    // 执行特定的处理逻辑，并将结果添加到 vector 中
+                    vector.add(taggedObject);
+                }
+            }
+        }
+        
         return vector;
     }
 
